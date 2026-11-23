@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poultry Farm Manager</title>
+<style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}body{margin:0;background:#fff8ec}header{background:#2e7d32;color:#fff;padding:16px;text-align:center}.wrap{max-width:1000px;margin:auto;padding:14px}.box{background:#fff;padding:16px;border-radius:12px;margin-top:14px;box-shadow:0 2px 8px rgba(0,0,0,.1)}label{font-weight:700;font-size:13px;display:block;margin:10px 0 4px}input{width:100%;padding:12px;border:1.5px solid #ddd;border-radius:9px;font-size:16px}button{width:100%;padding:15px;border:0;border-radius:10px;background:#2e7d32;color:#fff;font-weight:800;font-size:16px;margin-top:12px}button.blue{background:#1565c0}button.black{background:#000}button.green{background:#25D366}button.orange{background:#ef6c00}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}th{background:#f1f8e9}textarea{width:100%;height:250px;padding:12px;border:2px solid #2e7d32;border-radius:10px;font-family:monospace;font-size:13px;margin-top:10px}
+@media(max-width:600px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>🐔 Poultry Farm Manager</h1><p>Fixed for Chrome</p></header>
+<div class="wrap">
+
+<div class="box">
+<h2>TEST FIRST - Tap this</h2>
+<button style="background:#ff9800" onclick="alert('YES! Buttons are working now. Now add a record and download.')">TEST BUTTON - Tap Me</button>
+<p style="font-size:13px">If you see a popup saying YES, then buttons work. If not, your GitHub page is old - hard refresh.</p>
+</div>
+
+<div class="box">
+<h2>1. Add Record</h2>
+<label>Date</label><input type="date" id="recDate">
+<label>Flock / House</label><input type="text" id="flock" placeholder="e.g. House 1">
+<div class="row"><div><label>Male No.</label><input type="number" id="maleNo" value="0"></div><div><label>Female No.</label><input type="number" id="femaleNo" value="0"></div></div>
+<div class="row"><div><label>Births / Chicks</label><input type="number" id="births" value="0"></div><div><label>Deaths</label><input type="number" id="deaths" value="0"></div></div>
+<label>Eggs Collected</label><input type="number" id="eggs" value="0">
+<button onclick="saveRecord()">Save Record</button>
+<p id="msg"></p>
+</div>
+
+<div class="box">
+<h2>2. Incubation - 21 Days</h2>
+<label>Date Eggs Set</label><input type="date" id="setDate">
+<label>Eggs Set</label><input type="number" id="eggCount" placeholder="100">
+<label>Batch Name</label><input type="text" id="batchName" placeholder="Batch A">
+<button class="orange" onclick="addIncubation()">Calculate Hatch Date</button>
+<div id="incOut"></div>
+</div>
+
+<div class="box">
+<h2>3. Create Text File For Boss 📄</h2>
+<label>Farm Name</label><input type="text" id="farmName" value="My Poultry Farm">
+<label>File Name</label><input type="text" id="fileName" value="poultry_report">
+<button class="blue" onclick="previewText()">1. PREVIEW TEXT</button>
+<textarea id="preview" placeholder="Your report will show here after you tap PREVIEW..."></textarea>
+<button class="black" onclick="downloadText()">2. DOWNLOAD AS TEXT FILE (.txt)</button>
+<button class="green" onclick="shareText()">3. SHARE TO BOSS ON WHATSAPP</button>
+<button class="blue" onclick="copyText()">4. COPY TEXT</button>
+<p style="font-size:12px">In Chrome: Download goes to Downloads. Open Files > Downloads > poultry_report.txt</p>
+</div>
+
+<div class="box">
+<h2>All Records</h2>
+<button class="blue" onclick="downloadCSV()" style="width:auto;padding:8px 14px">Download CSV</button>
+<button onclick="clearAll()" style="width:auto;padding:8px 14px;background:#c62828">Clear All</button>
+<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Flock</th><th>Male</th><th>Female</th><th>Births</th><th>Deaths</th><th>Alive</th><th>Death %</th><th>Eggs</th></tr></thead><tbody id="tbody"></tbody></table></div>
+</div>
+</div>
+
+<script>
+var records = [];
+var incs = [];
+try { records = JSON.parse(localStorage.getItem('poultry_final') || '[]'); } catch(e) { records = []; }
+try { incs = JSON.parse(localStorage.getItem('poultry_inc_final') || '[]'); } catch(e) { incs = []; }
+
+function saveRecord(){
+  var date = document.getElementById('recDate').value;
+  var flock = document.getElementById('flock').value || 'General';
+  var male = Number(document.getElementById('maleNo').value) || 0;
+  var female = Number(document.getElementById('femaleNo').value) || 0;
+  var births = Number(document.getElementById('births').value) || 0;
+  var deaths = Number(document.getElementById('deaths').value) || 0;
+  var eggs = Number(document.getElementById('eggs').value) || 0;
+  if(!date){ alert('Pick a date'); return; }
+  if(male + female === 0){ alert('Put Male No. and Female No.'); return; }
+  var start = male + female;
+  var alive = start + births - deaths;
+  var deathRate = ((deaths / start) * 100).toFixed(1);
+  var birthRate = ((births / start) * 100).toFixed(1);
+  records.unshift({date:date, flock:flock, male:male, female:female, start:start, births:births, deaths:deaths, eggs:eggs, alive:alive, deathRate:deathRate, birthRate:birthRate});
+  try{ localStorage.setItem('poultry_final', JSON.stringify(records)); }catch(e){}
+  document.getElementById('msg').innerHTML = 'Saved! Alive: ' + alive + ' | Death: ' + deathRate + '%';
+  alert('Record Saved! Now go to Section 3');
+  render();
+}
+
+function addIncubation(){
+  var set = document.getElementById('setDate').value;
+  var count = Number(document.getElementById('eggCount').value) || 0;
+  var batch = document.getElementById('batchName').value || 'Batch';
+  if(!set){ alert('Pick set date'); return; }
+  var hatch = new Date(set); hatch.setDate(hatch.getDate() + 21);
+  var today = new Date(); today.setHours(0,0,0,0);
+  var diff = Math.ceil((hatch - today) / 86400000);
+  var status = diff < 0 ? 'Already Hatched' : diff === 0 ? 'HATCHING TODAY' : diff + ' days left';
+  incs.unshift({batch:batch, count:count, set:set, hatch:hatch.toISOString().slice(0,10), status:status});
+  try{ localStorage.setItem('poultry_inc_final', JSON.stringify(incs)); }catch(e){}
+  document.getElementById('incOut').innerHTML = '<p style="background:#fff3e0;padding:10px;border-radius:8px">Batch <b>' + batch + '</b> - Hatch: <b>' + hatch.toDateString() + '</b> - ' + status + '</p>';
+}
+
+function buildText(){
+  var farm = document.getElementById('farmName').value || 'My Poultry Farm';
+  var now = new Date().toLocaleString();
+  var alive = records.length ? records[0].alive : 0;
+  var male = records.length ? records[0].male : 0;
+  var female = records.length ? records[0].female : 0;
+  var tB=0,tD=0,tE=0;
+  for(var i=0;i<records.length;i++){ tB+=records[i].births; tD+=records[i].deaths; tE+=records[i].eggs; }
+  var txt = '';
+  txt += '========================================\n  POULTRY FARM REPORT\n========================================\n';
+  txt += 'Farm Name: ' + farm + '\nReport Date: ' + now + '\n----------------------------------------\nSUMMARY\n----------------------------------------\n';
+  txt += 'Total Birds Alive: ' + alive + '\nTotal Male No.: ' + male + '\nTotal Female No.: ' + female + '\nTotal Births: ' + tB + '\nTotal Deaths: ' + tD + '\nTotal Eggs: ' + tE + '\n';
+  txt += 'Death Rate: ' + (alive + tD ? ((tD / (alive + tD)) * 100).toFixed(1) : 0) + '%\n';
+  txt += '\n----------------------------------------\nDAILY RECORDS\n----------------------------------------\n';
+  if(records.length===0) txt += 'No records yet.\n';
+  for(var j=0;j<records.length;j++){ var r=records[j]; txt += '\n' + (j+1) + '. Date: ' + r.date + ' | Flock: ' + r.flock + '\n   Male No.: ' + r.male + ' | Female No.: ' + r.female + ' | Total Start: ' + r.start + '\n   Births: ' + r.births + ' | Deaths: ' + r.deaths + ' | Alive: ' + r.alive + '\n   Birth Rate: ' + r.birthRate + '% | Death Rate: ' + r.deathRate + '% | Eggs: ' + r.eggs + '\n'; }
+  txt += '\n----------------------------------------\nINCUBATION (21 DAYS)\n----------------------------------------\n';
+  if(incs.length===0) txt += 'No incubation batches.\n';
+  for(var k=0;k<incs.length;k++){ var b=incs[k]; txt += '\n' + (k+1) + '. Batch: ' + b.batch + ' | Eggs: ' + b.count + '\n   Set Date: ' + b.set + ' | Hatch Date: ' + b.hatch + ' | Status: ' + b.status + '\n'; }
+  txt += '\n========================================\nEnd of Report\n';
+  return txt;
+}
+
+function previewText(){
+  var t = buildText();
+  document.getElementById('preview').value = t;
+  alert('Preview loaded! Scroll down to see text. Now tap DOWNLOAD.');
+}
+
+function downloadText(){
+  var name = (document.getElementById('fileName').value || 'poultry_report').replace(/[^a-z0-9_-]/gi, '_') + '.txt';
+  var text = buildText();
+  alert('Creating file: ' + name + ' - Tap OK, then check Downloads');
+  var blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
+function copyText(){
+  var t = buildText();
+  document.getElementById('preview').value = t;
+  var box = document.getElementById('preview');
+  box.select();
+  document.execCommand('copy');
+  alert('COPIED! Now paste in WhatsApp to your boss.');
+}
+
+function shareText(){
+  var t = buildText();
+  var wa = 'https://wa.me/?text=' + encodeURIComponent(t.substring(0,3500));
+  window.open(wa, '_blank');
+}
+
+function downloadCSV(){
+  var csv = 'Date,Flock,Male,Female,Start,Births,Deaths,Alive,BirthRate,DeathRate,Eggs\n';
+  for(var i=0;i<records.length;i++){ var r=records[i]; csv += r.date+','+r.flock+','+r.male+','+r.female+','+r.start+','+r.births+','+r.deaths+','+r.alive+','+r.birthRate+','+r.deathRate+','+r.eggs+'\n'; }
+  var blob = new Blob([csv], {type:'text/csv'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='poultry_records.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function render(){
+  var html='';
+  for(var j=0;j<records.length;j++){ var r=records[j]; html+='<tr><td>'+r.date+'</td><td>'+r.flock+'</td><td>'+r.male+'</td><td>'+r.female+'</td><td>'+r.births+'</td><td>'+r.deaths+'</td><td><b>'+r.alive+'</b></td><td>'+r.deathRate+'%</td><td>'+r.eggs+'</td></tr>'; }
+  document.getElementById('tbody').innerHTML=html;
+}
+function renderInc(){
+  var h=''; for(var i=0;i<incs.length;i++){ var b=incs[i]; h+='<p style="background:#fff3e0;padding:8px;border-radius:8px"><b>'+b.batch+'</b> - '+b.count+' eggs - Set: '+b.set+' -> Hatch: <b>'+b.hatch+'</b> - '+b.status+'</p>'; }
+  document.getElementById('incOut').innerHTML=h;
+}
+function clearAll(){ if(confirm('Delete all?')){ localStorage.removeItem('poultry_final'); localStorage.removeItem('poultry_inc_final'); records=[]; incs=[]; render(); renderInc(); } }
+
+document.getElementById('recDate').valueAsDate = new Date();
+document.getElementById('setDate').valueAsDate = new Date();
+render(); renderInc();
+</script>
+</body>
+</html>
